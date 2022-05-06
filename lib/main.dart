@@ -1,5 +1,4 @@
 import 'package:firebase_app/screen/home/homepage.dart';
-import 'package:firebase_app/screen/login/login_screen.dart';
 import 'package:firebase_app/screen/launch_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -22,13 +21,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       title: 'Flutter Demo',
-      theme: ThemeData(
-        textTheme: const TextTheme(
-            bodyText1: TextStyle(color: Colors.white),
-            bodyText2: TextStyle(color: Colors.white)),
-        primarySwatch: Colors.blue,
-      ),
       home: StreamBuilder<User?>(
+        initialData: null,
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (ctx, snapshot) {
           if (snapshot.hasData == true) {

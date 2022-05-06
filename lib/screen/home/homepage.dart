@@ -13,31 +13,39 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('All User'),
       ),
-      body: StreamBuilder<List<UserObject>>(
+      body: StreamBuilder<List<Users>>(
+        initialData: null,
+        stream: readUsers(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('something went wrong'),
-            );
-          } else if (snapshot.hasData) {
-            final users = snapshot.data!;
-            return ListView(
-              children: users.map(buildUsers).toList(),
-            );
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+          try {
+            log('no error on first hand');
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text('something went wrong'),
+              );
+            } else if (snapshot.data == null) {
+              return const Text('No User Found');
+            } else if (snapshot.hasData) {
+              final users = snapshot.data!;
+              return ListView(
+                children: users.map(buildUsers).toList(),
+              );
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          } on FirebaseException catch (e) {
+            log('Error caught : $e');
+            return const Text('Server Crashed');
           }
         },
-        stream: readUsers(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -53,14 +61,11 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-Widget buildUsers(UserObject user) {
-  log('user build');
-  return ListTile(
-    leading: CircleAvatar(child: Text('${user.age}')),
-    title: Text(user.name),
-    subtitle: Text(user.sex),
-  );
-}
+Widget buildUsers(Users user) => ListTile(
+      leading: CircleAvatar(child: Text('${user.age}')),
+      title: Text(user.name),
+      subtitle: Text(user.sex),
+    );
 
 Future createUser({
   required String name,
@@ -72,7 +77,7 @@ Future createUser({
 
   // replacing previous json map to a user object
 
-  final user = UserObject(
+  final user = Users(
     id: docUser.id,
     name: name,
     age: age,
@@ -84,27 +89,18 @@ Future createUser({
   log('added');
 }
 
-Stream<List<UserObject>> readUsers() {
-  final collection = FirebaseFirestore.instance
-      .collection('users')
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map(
-            (doc) => UserObject.fromJson(doc.data()),
-          )
-          .toList());
-
-  return collection;
-}
+Stream<List<Users>> readUsers() =>
+    FirebaseFirestore.instance.collection('users').snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => Users.fromJson(doc.data())).toList());
 
 // user object class
-class UserObject {
+class Users {
   String id;
   final String name;
   final int age;
   final String sex;
 
-  UserObject({
+  Users({
     this.id = '',
     required this.name,
     required this.age,
@@ -118,10 +114,10 @@ class UserObject {
         'sex': sex,
       };
 
-  static UserObject fromJson(Map<String, dynamic> json) => UserObject(
+  static Users fromJson(Map<String, dynamic> json) => Users(
+        age: json['age'],
         id: json['id'],
         name: json['name'],
-        age: json['age'],
         sex: json['sex'],
       );
 }
