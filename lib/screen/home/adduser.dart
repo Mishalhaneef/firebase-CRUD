@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'homepage.dart';
+import 'home_stream/homepage.dart';
 
 class AddUserScreen extends StatelessWidget {
   const AddUserScreen({Key? key}) : super(key: key);
@@ -35,12 +35,13 @@ class AddUserScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: () {
-              createUser(
+            onPressed: () async {
+              await createUser(
                 name: nameController.text,
                 age: int.parse(ageController.text),
                 sex: sexController.text,
               );
+              Navigator.pop(context);
             },
             child: const Text('create'),
           )

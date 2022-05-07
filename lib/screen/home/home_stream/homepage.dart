@@ -2,16 +2,11 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'appbody.dart';
+import '../adduser.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   HomePage({Key? key}) : super(key: key);
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser;
   @override
   Widget build(BuildContext context) {
@@ -19,31 +14,28 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('All User'),
       ),
-      body: StreamBuilder<List<Users>>(
+      body: StreamBuilder<List<Users?>>(
         initialData: null,
         stream: readUsers(),
         builder: (context, snapshot) {
           try {
-            log('no error on first hand');
             if (snapshot.hasError) {
-              return const Center(
-                child: Text('something went wrong'),
-              );
-            } else if (snapshot.data == null) {
-              return const Text('No User Found');
-            } else if (snapshot.hasData) {
+              if (snapshot.data == null) {
+                return Message(text: 'value is ${snapshot.data}');
+              }
+              return Message(text: ': ${snapshot.error}');
+            }
+
+            if (snapshot.hasData) {
               final users = snapshot.data!;
               return ListView(
                 children: users.map(buildUsers).toList(),
               );
             } else {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return Loading();
             }
           } on FirebaseException catch (e) {
-            log('Error caught : $e');
-            return const Text('Server Crashed');
+            return Text('Server got error here : $e');
           }
         },
       ),
@@ -61,8 +53,8 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-Widget buildUsers(Users user) => ListTile(
-      leading: CircleAvatar(child: Text('${user.age}')),
+Widget buildUsers(Users? user) => ListTile(
+      leading: CircleAvatar(child: Text('${user!.age}')),
       title: Text(user.name),
       subtitle: Text(user.sex),
     );
@@ -90,7 +82,16 @@ Future createUser({
 }
 
 Stream<List<Users>> readUsers() =>
-    FirebaseFirestore.instance.collection('users').snapshots().map((snapshot) =>
+    FirebaseFirestore.instance
+    // collection for specifiy the collection on DB
+    .collection('users')
+    // snap shot to take all the document from the spcified colleciton
+    .snapshots()
+    // and the firebase collections return map. so converting to this
+    // json data to user object
+    .map((snapshot) =>
+    // to convert we are converting the all snapshot documents to user object
+    // there is a method to convert called [fromJson]
         snapshot.docs.map((doc) => Users.fromJson(doc.data())).toList());
 
 // user object class
@@ -115,9 +116,32 @@ class Users {
       };
 
   static Users fromJson(Map<String, dynamic> json) => Users(
-        age: json['age'],
-        id: json['id'],
-        name: json['name'],
-        sex: json['sex'],
+        id: json['id'] ?? 'cant retrve data',
+        age: json['age'] ?? 00,
+        name: json['name'] ?? 'cant retrve data',
+        sex: json['sex'] ?? 'cant retrve data',
       );
+}
+
+class Message extends StatelessWidget {
+  const Message({Key? key, required this.text}) : super(key: key);
+
+  final text;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(text),
+    );
+  }
+}
+
+class Loading extends StatelessWidget {
+  const Loading({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
 }
